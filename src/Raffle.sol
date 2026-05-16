@@ -39,7 +39,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     // function.
     uint32 private immutable i_callgaslimit;
     // The default is 3, but you can set this higher.
-    uint16 private constant REQUEST_CONFIRMATIONS = 5;
+    uint16 private constant REQUEST_CONFIRMATIONS = 3;
 
     // For this example, retrieve 1 random value in one request.
     // Cannot exceed VRFCoordinatorV2_5.MAX_NUM_WORDS.

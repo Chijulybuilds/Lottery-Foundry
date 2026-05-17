@@ -15,7 +15,7 @@ import {HelperConfig} from "./HelperConfig.s.sol";
 import {VRFCoordinatorV2_5Mock} from "lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
 /*//////////////////////////////////////////////////////////////
-                        DEPLOYMENT OF RAFFLE
+                    DEPLOYMENT OF RAFFLE
 //////////////////////////////////////////////////////////////*/
 
 contract DeployRaffle is Script {
@@ -37,8 +37,9 @@ contract DeployRaffle is Script {
             callgaslimit,
             gaslane
         );
-        vm.stopBroadcast();
         VRFCoordinatorV2_5Mock(vrfCoordinator).addConsumer(subId, address(raffle));
+        vm.stopBroadcast();
+        
         return raffle;
     }
 }

@@ -1,6 +1,6 @@
 -include .env
 
-.PHONY: dependency test coverage
+.PHONY: dependency test coverage deploy
 
 dependency:
 	forge install smartcontractkit/chainlink-brownie-contracts
@@ -10,6 +10,9 @@ test:
 
 coverage:
 	forge coverage && forge coverage --fork-url ${SEPOLIA_URL} && forge coverage --fork-url ${MAINNET_URL}
+
+deploy:
+	forge script script/DeployRaffle.s.sol --fork-url ${SEPOLIA_URL} --private-key ${KEY_PRIVATE} --broadcast
 
 
 

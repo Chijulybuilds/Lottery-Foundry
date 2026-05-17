@@ -22,10 +22,10 @@ contract Raffletest is Test {
     address internal PLAYER_ONE_THREE = makeAddr("PLAYER_ONEThree");
 
     /* Constant Variables */
-    uint256 internal constant entranceFee = 0.2 ether;
+    uint256 internal constant entranceFee = 0.02 ether;
     uint256 internal constant interval = 60;
     uint256 internal subId;
-    uint32 internal constant callgaslimit = 40000;
+    uint32 internal constant callgaslimit = 200000;
     bytes32 internal gaslane = vm.envBytes32("KEY_HASH");
     uint256 internal constant STARTING_BALANCE = 5 ether;
     uint96 internal constant BASE_FEE = 1e9;
@@ -33,41 +33,31 @@ contract Raffletest is Test {
     int256 internal constant WEI_PER_UNIT_LINK = 1e18;
     uint256 internal constant FUND_AMOUNT = 100 ether;
 
-    /** @dev setUp function to initialize the test environment 
-    * @dev This setUp functions oes the following:
-    1. Creates a mock vrf contract address
-    2. Create a mock subscription Id
-    3. Deploys a new Raffle contract to set the Test Environment of its functions
-    6. Funds each of the participants using vm.deal()
-    */
+    /**
+     * @dev setUp function to initialize the test environment
+     * @dev This setUp functions oes the following:
+     * 1. Creates a mock vrf contract address
+     * 2. Create a mock subscription Id
+     * 3. Deploys a new Raffle contract to set the Test Environment of its functions
+     * 6. Funds each of the participants using vm.deal()
+     */
     event RaffleEnter(address indexed participant);
     event RequestedRaffleNumber(uint256 indexed requestId);
     event WinnerPicked(address indexed winner);
+
+    receive() external payable {}
+    fallback() external payable {}
 
     /*//////////////////////////////////////////////////////////////
                           TESTING USING MOCKS
     //////////////////////////////////////////////////////////////*/
 
     function setUp() external {
-        // Always use a fresh local mock for unit tests so behavior is deterministic
-        // on local Anvil and on forked networks.
-        vrfCoordinator = new VRFCoordinatorV2_5Mock(
-            BASE_FEE,
-            GAS_PRICE_LINK,
-            WEI_PER_UNIT_LINK
-        );
-
+        // Use a fresh mock coordinator for deterministic unit tests.
+        vrfCoordinator = new VRFCoordinatorV2_5Mock(BASE_FEE, GAS_PRICE_LINK, WEI_PER_UNIT_LINK);
         subId = vrfCoordinator.createSubscription();
 
-        raffle = new Raffle(
-            entranceFee,
-            interval,
-            subId,
-            address(vrfCoordinator),
-            callgaslimit,
-            gaslane
-        );
-
+        raffle = new Raffle(entranceFee, interval, subId, address(vrfCoordinator), callgaslimit, gaslane);
         vrfCoordinator.addConsumer(subId, address(raffle));
         vrfCoordinator.fundSubscription(subId, FUND_AMOUNT);
 
@@ -78,7 +68,7 @@ contract Raffletest is Test {
 
     function testCheckUpkeepReturnsFalseWhenNoPLAYER_ONEsOrBalance() external {
         vm.warp(block.timestamp + interval + 1);
-        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
         assertFalse(upkeepNeeded);
     }
 
@@ -93,7 +83,7 @@ contract Raffletest is Test {
         raffle.enterlottery{value: entranceFee}();
         vm.warp(block.timestamp + interval - 1); // at this point it has not passed or reached
         vm.roll(block.timestamp);
-        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
         assertFalse(upkeepNeeded);
     }
 
@@ -103,16 +93,13 @@ contract Raffletest is Test {
         vm.warp(block.timestamp + interval + 1);
         vm.roll(block.timestamp + 1);
         raffle.performUpkeep("");
-        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
 
         assertFalse(upkeepNeeded);
 
         /* RaffleState.OPEN = 0
         /* RaffleState.CALCULATING = 1 */
-        assertEq(
-            uint256(raffle.getRaffleState()),
-            uint256(Raffle.RaffleState.CALCULATING)
-        );
+        assertEq(uint256(raffle.getRaffleState()), uint256(Raffle.RaffleState.CALCULATING));
     }
 
     function testCheckUpkeepReturnsTrueWhenAllConditionsAreMet() external {
@@ -120,7 +107,7 @@ contract Raffletest is Test {
         raffle.enterlottery{value: entranceFee}();
         vm.warp(block.timestamp + interval + 1);
 
-        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
         assertTrue(upkeepNeeded);
     }
 
@@ -136,24 +123,17 @@ contract Raffletest is Test {
 
         raffle.performUpkeep("");
 
-        assertEq(
-            uint256(raffle.getRaffleState()),
-            uint256(Raffle.RaffleState.CALCULATING)
-        );
+        assertEq(uint256(raffle.getRaffleState()), uint256(Raffle.RaffleState.CALCULATING));
         assertGt(raffle.getLastRequestId(), 0);
     }
 
-    function testRawFulfillRandomWordsRevertsIfNotCalledByCoordinator()
-        external
-    {
+    function testRawFulfillRandomWordsRevertsIfNotCalledByCoordinator() external {
         uint256[] memory randomWords = new uint256[](1);
         randomWords[0] = 123;
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                VRFConsumerBaseV2Plus.OnlyCoordinatorCanFulfill.selector,
-                address(this),
-                address(vrfCoordinator)
+                VRFConsumerBaseV2Plus.OnlyCoordinatorCanFulfill.selector, address(this), address(vrfCoordinator)
             )
         );
         raffle.rawFulfillRandomWords(1, randomWords);
@@ -177,9 +157,7 @@ contract Raffletest is Test {
         raffle.performUpkeep("");
         uint256 requestId = raffle.getLastRequestId();
 
-        uint256 expectedWinnerIndex = uint256(
-            keccak256(abi.encode(requestId, uint256(0)))
-        ) % PLAYER_ONEs.length;
+        uint256 expectedWinnerIndex = uint256(keccak256(abi.encode(requestId, uint256(0)))) % PLAYER_ONEs.length;
         address expectedWinner = PLAYER_ONEs[expectedWinnerIndex];
         uint256 winnerBalanceBefore = expectedWinner.balance;
         uint256 potBefore = address(raffle).balance;
@@ -188,10 +166,7 @@ contract Raffletest is Test {
 
         assertEq(raffle.getRecentWinner(), expectedWinner);
         assertEq(raffle.lengthOfgetParticipants(), 0);
-        assertEq(
-            uint256(raffle.getRaffleState()),
-            uint256(Raffle.RaffleState.OPEN)
-        );
+        assertEq(uint256(raffle.getRaffleState()), uint256(Raffle.RaffleState.OPEN));
         assertGt(raffle.getLastTimestamp(), startingTimestamp);
         assertEq(expectedWinner.balance - winnerBalanceBefore, potBefore);
     }
@@ -217,7 +192,7 @@ contract Raffletest is Test {
         assertTrue(address(raffle).balance > 0);
         assertTrue(raffle.getRaffleState() == Raffle.RaffleState.OPEN);
 
-        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
         assertTrue(upkeepNeeded);
         vm.expectEmit(true, false, false, false, address(raffle));
         emit RequestedRaffleNumber(1);
@@ -258,54 +233,30 @@ contract Raffletest is Test {
 
     function testgetSepoliaCoordinateVRFAdd() external {
         HelperConfig helperConfig = new HelperConfig();
-        HelperConfig.CoordinatorConfig memory sepoliaConfig = helperConfig
-            .getSepoliaCoordinateAdd();
+        HelperConfig.CoordinatorConfig memory sepoliaConfig = helperConfig.getSepoliaCoordinateAdd();
         address coordinator = sepoliaConfig.vrfCoordinator;
 
-        Raffle localRaffle = new Raffle(
-            entranceFee,
-            interval,
-            subId,
-            coordinator,
-            callgaslimit,
-            gaslane
-        );
+        Raffle localRaffle = new Raffle(entranceFee, interval, subId, coordinator, callgaslimit, gaslane);
 
         assertEq(localRaffle.getVRFCoordinator(), coordinator);
     }
 
     function testgetMainnetCoordinateVRFAdd() external {
         HelperConfig helperConfig = new HelperConfig();
-        HelperConfig.CoordinatorConfig memory mainnetConfig = helperConfig
-            .getMainnetCoordinateAdd();
+        HelperConfig.CoordinatorConfig memory mainnetConfig = helperConfig.getMainnetCoordinateAdd();
         address coordinator = mainnetConfig.vrfCoordinator;
 
-        Raffle localRaffle = new Raffle(
-            entranceFee,
-            interval,
-            subId,
-            coordinator,
-            callgaslimit,
-            gaslane
-        );
+        Raffle localRaffle = new Raffle(entranceFee, interval, subId, coordinator, callgaslimit, gaslane);
 
         assertEq(localRaffle.getVRFCoordinator(), coordinator);
     }
 
     function testgetAnvilCoordinateVRFAdd() external {
         HelperConfig helperConfig = new HelperConfig();
-        HelperConfig.CoordinatorConfig memory anvilConfig = helperConfig
-            .getAnvilCoordinateAdd();
+        HelperConfig.CoordinatorConfig memory anvilConfig = helperConfig.getAnvilCoordinateAdd();
         address coordinator = anvilConfig.vrfCoordinator;
 
-        Raffle localRaffle = new Raffle(
-            entranceFee,
-            interval,
-            subId,
-            coordinator,
-            callgaslimit,
-            gaslane
-        );
+        Raffle localRaffle = new Raffle(entranceFee, interval, subId, coordinator, callgaslimit, gaslane);
 
         assertEq(localRaffle.getVRFCoordinator(), coordinator);
     }

@@ -9,12 +9,8 @@ pragma solidity ^0.8.18;
  * @dev      Implements ChainVRFv2.5 rather than pseudo-randomness
  */
 
-import {
-    VRFConsumerBaseV2Plus
-} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
-import {
-    VRFV2PlusClient
-} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
+import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
+import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
 contract Raffle is VRFConsumerBaseV2Plus {
     // Your subscription ID.
@@ -76,7 +72,9 @@ contract Raffle is VRFConsumerBaseV2Plus {
     event RequestedRaffleNumber(uint256 indexed requestId);
     event WinnerPicked(address indexed winner);
 
-    /** @dev constructor is only executed once when contract is deployed */
+    /**
+     * @dev constructor is only executed once when contract is deployed
+     */
 
     constructor(
         uint256 entrancefee,
@@ -132,18 +130,21 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
     function checkUpkeep(
         bytes memory /* checkData */
-    ) public view returns (bool upkeepNeeded, bytes memory /*data */) {
+    )
+        public
+        view
+        returns (
+            bool upkeepNeeded,
+            bytes memory /*data */
+        )
+    {
         /* @notice All boolean values are set to true */
         bool timeHasPassed = (block.timestamp - s_lasttimestamp) >= i_interval;
         bool isRaffleOpen = (s_RaffleState == RaffleState.OPEN);
         bool hasbalance = address(this).balance > 0;
         bool hasplayers = s_participants.length > 0;
 
-        upkeepNeeded =
-            timeHasPassed &&
-            isRaffleOpen &&
-            hasbalance &&
-            hasplayers;
+        upkeepNeeded = timeHasPassed && isRaffleOpen && hasbalance && hasplayers;
         return (upkeepNeeded, "");
     }
 
@@ -153,9 +154,13 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
     /* @dev here, the performUpkeep starts requesting for a random number if checkUpkeep is true */
 
-    function performUpkeep(bytes calldata /* performData */) external {
+    function performUpkeep(
+        bytes calldata /* performData */
+    )
+        external
+    {
         /* To check if the interval has passed */
-        (bool upkeepNeeded, ) = checkUpkeep("");
+        (bool upkeepNeeded,) = checkUpkeep("");
         if (!upkeepNeeded) {
             revert Raffle__NotYetTimeForLottery();
         }
@@ -191,9 +196,13 @@ contract Raffle is VRFConsumerBaseV2Plus {
     //////////////////////////////////////////////////////////////*/
 
     function fulfillrandomword(
-        uint256 /* requestId */,
+        uint256,
+        /* requestId */
         uint256[] calldata randomNumbers
-    ) internal override {
+    )
+        internal
+        override
+    {
         if (s_participants.length == 0) {
             revert Raffle__NoParticipants();
         }
@@ -207,7 +216,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
         s_participants = new address payable[](0);
         s_lasttimestamp = block.timestamp;
 
-        (bool success, ) = winner.call{value: address(this).balance}("");
+        (bool success,) = winner.call{value: address(this).balance}("");
         if (!success) {
             revert Raffle__TransferFailed();
         }
@@ -254,5 +263,16 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
     function getLastTimestamp() public view returns (uint256) {
         return s_lasttimestamp;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                       RECEIVE FEE FROM EXTERNAL
+    //////////////////////////////////////////////////////////////*/
+    receive() external payable {
+        enterlottery();
+    }
+
+    fallback() external payable {
+        enterlottery();
     }
 }

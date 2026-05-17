@@ -39,19 +39,3 @@ contract FundRaffle is Script {
     }
 }
 
-// contract WithdrawFundMe is Script {
-//     function withdrawFundMe(address mostRecentDeploy) public {
-//         vm.startBroadcast();
-//         Raffle(payable(mostRecentDeploy)).withdraw();
-//         vm.stopBroadcast();
-
-//     }
-
-//     function run() external {
-//         address mostRecentDeploy = DevOpsTools.get_most_recent_deployment(
-//             "FundMe",
-//             block.chainid
-//         );
-//         withdrawFundMe(mostRecentDeploy);
-//     }
-// }

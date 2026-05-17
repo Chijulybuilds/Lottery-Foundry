@@ -13,13 +13,7 @@ import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFCo
 import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
 contract Raffle is VRFConsumerBaseV2Plus {
-    // Your subscription ID.
     uint256 private immutable i_subscriptionId;
-
-    // Sepolia coordinator. For other networks,
-    // see https://docs.chain.link/vrf/v2-5/supported-networks#configurations
-    /* vrf_sepolia address : 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B */
-
     address private immutable i_vrfCoordinator;
 
     // The gas lane to use, which specifies the maximum gas price to bump to.

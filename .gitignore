@@ -2,6 +2,8 @@
 cache/
 out/
 headers/
+lib/
+
 
 
 # Commonly ignored directories
@@ -13,6 +15,7 @@ lib/
 !/broadcast
 /broadcast/*/31337/
 /broadcast/**/dry-run/
+broadcast/
 
 # Docs
 docs/

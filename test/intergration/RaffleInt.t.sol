@@ -14,6 +14,8 @@ import {
                   TESTING ENTERLOTTERY PAYMENT
 //////////////////////////////////////////////////////////////*/
 
+error Raffle__NotEnoughETHToEnterLottery();
+
 contract RaffleInt is Test {
     Raffle internal raffle;
     FundRaffle internal fundRaffle;
@@ -60,15 +62,27 @@ contract RaffleInt is Test {
         assertTrue(raffle.getParticipant(0) != address(0));
     }
 
-    // function testGetMostRecentDeployWorksOnAllForks() external view {
-    //     if (block.chainid != MAINNET_ID && block.chainid != SEPOLIA_ID && block.chainid != ANVIL_ID) {
-    //         return; // skip unsupported/no-artifact networks like local anvil
-    //     }
+    function testFundRaffleRevertsWhenSendFeeIsTooLow() external {
+        // vm.setEnv("SEND_FEE_WEI", vm.toString(ENTRY_FEE - 1));
+        // assertEq(vm.envUint("SEND_FEE_WEI"), ENTRY_FEE - 1);
+        vm.expectRevert(Raffle__NotEnoughETHToEnterLottery.selector);
+        fundRaffle.fundRaffle(address(raffle), ENTRY_FEE - 1);
 
-    //     address mostRecent = DevOpsTools.get_most_recent_deployment(
-    //         "Raffle",
-    //         block.chainid
-    //     );
-    //     assertTrue(mostRecent != address(0));
-    // }
+    }
+
+    function testRunUsesMostRecentDeploymentLookup() external {
+        // switch to Sepolia chain id to match checked-in broadcast artifacts.
+            vm.chainId(SEPOLIA_ID);
+            address mostRecentDeploy = DevOpsTools.get_most_recent_deployment("Raffle", block.chainid);
+            assertTrue(mostRecentDeploy != address(0));
+
+            vm.setEnv("SEND_FEE_WEI", vm.toString(ENTRY_FEE));
+            vm.deal(address(this), SEND_VALUE);
+            uint256 balanceBefore = mostRecentDeploy.balance;
+
+            fundRaffle.run();
+
+            // run() should resolve most recent deployment and forward ENTRY_FEE to it.
+            assertEq(mostRecentDeploy.balance, balanceBefore + ENTRY_FEE);
+    }
 }

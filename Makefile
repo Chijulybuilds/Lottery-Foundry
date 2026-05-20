@@ -1,6 +1,6 @@
 -include .env
 
-.PHONY: dependency test coverage gas deploy payentrancefee-sepolia
+.PHONY: dependency test coverage gas deploy payentrancefee-sepolia performupkeep-sepolia
 
 dependency:
 	forge install smartcontractkit/chainlink-brownie-contracts && forge install Cyfrin/foundry-devops@0.4.0
@@ -19,6 +19,9 @@ deploy:
 
 payentrancefee-sepolia:
 	forge script script/Transactions.s.sol:FundRaffle --rpc-url ${SEPOLIA_URL} --private-key ${KEY_PRIVATE} --broadcast --verify --etherscan-api-key ${ETHERSCAN_API_KEY} -vvv
+
+performupkeep-sepolia:
+	forge script script/Transactions.s.sol:PerformUpkeepRaffle --rpc-url ${SEPOLIA_URL} --private-key ${KEY_PRIVATE} --broadcast -vvv
 
  
 

@@ -15,6 +15,7 @@ import {DevOpsTools} from "foundry-devops/src/DevOpsTools.sol";
 import {Raffle} from "src/Raffle.sol";
 
 error Raffle__NotEnoughETHToEnterLottery();
+error Raffle__UpkeepNotNeeded();
 
 /*//////////////////////////////////////////////////////////////
                       ENTERLOTTERY PAYMENT
@@ -22,20 +23,22 @@ error Raffle__NotEnoughETHToEnterLottery();
 contract FundRaffle is Script {
     uint256 internal entranceFee = 20000000000000000 wei;
 
-    function fundRaffle(address mostRecentDeploy) public {
-        uint256 sendFeeWei = vm.envUint("SEND_FEE_WEI");
-        if (sendFeeWei < entranceFee) {
-            revert Raffle__NotEnoughETHToEnterLottery();
-        }
+    function fundRaffle(address mostRecentDeploy, uint256 sendFeeWei) public {
+        if (sendFeeWei < entranceFee) revert Raffle__NotEnoughETHToEnterLottery();
         vm.startBroadcast();
         Raffle(payable(mostRecentDeploy)).enterlottery{value: sendFeeWei}();
         vm.stopBroadcast();
     }
+
+    function fundRaffle(address mostRecentDeploy) public {
+        fundRaffle(mostRecentDeploy, vm.envUint("SEND_FEE_WEI"));
+    }
+
 
     function run() external {
         // we need to get most recently deployed contract to interact with
         address mostRecentDeploy = DevOpsTools.get_most_recent_deployment("Raffle", block.chainid);
         fundRaffle(mostRecentDeploy);
     }
-}
 
+}
